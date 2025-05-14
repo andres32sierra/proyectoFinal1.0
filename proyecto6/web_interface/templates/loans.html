@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Préstamos</h1>
+        <a href="{{ url_for('create_loan') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Crear Préstamo
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Recurso</th>
+                    <th>Estudiante</th>
+                    <th>Fecha Préstamo</th>
+                    <th>Fecha Vencimiento</th>
+                    <th>Fecha Devolución</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ loan.id }}</td>
+                    <td>{{ resources.get(loan.resource_id|string, {}).get('name', 'Recurso no encontrado') }}</td>
+                    <td>{{ students.get(loan.student_id|string, {}).get('name', 'Estudiante no encontrado') }}</td>
+                    <td>{{ loan.loan_date.split('T')[0] }}</td>
+                    <td>{{ loan.due_date.split('T')[0] }}</td>
+                    <td>{{ loan.return_date.split('T')[0] if loan.return_date else '-' }}</td>
+                    <td>
+                        <span class="badge {% if loan.status == 'prestado' %}bg-primary
+                                         {% elif loan.status == 'devuelto' %}bg-success
+                                         {% else %}bg-danger{% endif %}">
+                            {{ loan.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if loan.status == 'prestado' %}
+                        <form method="POST" action="{{ url_for('devolver_recurso', loan_id=loan.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-undo"></i> Devolver
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

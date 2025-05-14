@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Historial de Préstamos del Estudiante {{ student_id }}</h1>
+        <a href="{{ url_for('students') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver a Estudiantes
+        </a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>ID Préstamo</th>
+                    <th>ID Recurso</th>
+                    <th>Fecha Préstamo</th>
+                    <th>Fecha Límite</th>
+                    <th>Fecha Devolución</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                <tr>
+                    <td>{{ loan.id }}</td>
+                    <td>{{ loan.resource_id }}</td>
+                    <td>{{ loan.loan_date }}</td>
+                    <td>{{ loan.due_date }}</td>
+                    <td>{{ loan.return_date if loan.return_date else 'No devuelto' }}</td>
+                    <td>
+                        <span class="badge {% if loan.status == 'active' %}bg-primary
+                                         {% elif loan.status == 'returned' %}bg-success
+                                         {% else %}bg-danger{% endif %}">
+                            {{ loan.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if loan.status == 'active' %}
+                        <form method="POST" action="{{ url_for('return_loan', loan_id=loan.id) }}" style="display: inline;">
+                            <button type="submit" class="btn btn-sm btn-success">
+                                <i class="fas fa-check"></i> Devolver
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
