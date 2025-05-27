@@ -15,6 +15,7 @@ def init_resources():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT,
+            type TEXT NOT NULL,
             quantity INTEGER DEFAULT 1,
             status TEXT DEFAULT 'disponible'
         )
@@ -22,14 +23,14 @@ def init_resources():
     
     # Datos de ejemplo
     resources = [
-        ('Laptop Dell XPS', 'Laptop para desarrollo de software', 5, 'disponible'),
-        ('Proyector Epson', 'Proyector para presentaciones', 3, 'disponible'),
-        ('iPad Pro', 'Tablet para diseño gráfico', 4, 'disponible'),
-        ('Monitor LG 27"', 'Monitor para estación de trabajo', 6, 'disponible'),
-        ('Cámara Sony', 'Cámara para fotografía profesional', 2, 'disponible')
+        ('Laptop Dell XPS', 'Laptop para desarrollo de software', 'Computadora', 5, 'disponible'),
+        ('Proyector Epson', 'Proyector para presentaciones', 'Equipo Audiovisual', 3, 'disponible'),
+        ('iPad Pro', 'Tablet para diseño gráfico', 'Tablet', 4, 'disponible'),
+        ('Monitor LG 27"', 'Monitor para estación de trabajo', 'Monitor', 6, 'disponible'),
+        ('Cámara Sony', 'Cámara para fotografía profesional', 'Equipo Fotográfico', 2, 'disponible')
     ]
     
-    c.executemany('INSERT INTO resources (name, description, quantity, status) VALUES (?, ?, ?, ?)', resources)
+    c.executemany('INSERT INTO resources (name, description, type, quantity, status) VALUES (?, ?, ?, ?, ?)', resources)
     conn.commit()
     conn.close()
 
@@ -48,20 +49,24 @@ def init_students():
             email TEXT NOT NULL,
             student_id TEXT NOT NULL UNIQUE,
             career TEXT NOT NULL,
-            semester INTEGER NOT NULL
+            semester INTEGER NOT NULL,
+            phone TEXT
         )
     ''')
     
     # Datos de ejemplo
     students = [
-        ('Ana García', 'ana.garcia@universidad.edu', 'A2023001', 'Ingeniería de Software', 6),
-        ('Carlos Rodríguez', 'carlos.rodriguez@universidad.edu', 'A2023002', 'Diseño Gráfico', 4),
-        ('María López', 'maria.lopez@universidad.edu', 'A2023003', 'Ciencias de la Computación', 8),
-        ('Juan Martínez', 'juan.martinez@universidad.edu', 'A2023004', 'Sistemas de Información', 5),
-        ('Laura Torres', 'laura.torres@universidad.edu', 'A2023005', 'Ingeniería de Software', 3)
+        ('Ana García', 'ana.garcia@universidad.edu', 'A2023001', 'Ingeniería de Software', 4, '555-1234'),
+        ('Carlos Rodríguez', 'carlos.rodriguez@universidad.edu', 'A2023002', 'Diseño Gráfico', 3, '555-5678'),
+        ('María López', 'maria.lopez@universidad.edu', 'A2023003', 'Ciencias de la Computación', 5, '555-9012'),
+        ('Juan Martínez', 'juan.martinez@universidad.edu', 'A2023004', 'Sistemas de Información', 4, '555-3456'),
+        ('Laura Torres', 'laura.torres@universidad.edu', 'A2023005', 'Ingeniería de Software', 3, '555-7890'),
+        ('Andrés Diego', 'aandresdiego@gmail.com', '123', 'ing sistemas', 6, '555-2468'),
+        ('Jennifer Velandia', 'jenifer.velandia@uniminuto.edu.co', '783129', 'ing sistemas', 8, '555-1357'),
+        ('Andrés Diego', 'aandresdiego@gmail.com', 'A835173', 'ing sistemas', 7, '555-9753')
     ]
     
-    c.executemany('INSERT INTO students (name, email, student_id, career, semester) VALUES (?, ?, ?, ?, ?)', students)
+    c.executemany('INSERT INTO students (name, email, student_id, career, semester, phone) VALUES (?, ?, ?, ?, ?, ?)', students)
     conn.commit()
     conn.close()
 

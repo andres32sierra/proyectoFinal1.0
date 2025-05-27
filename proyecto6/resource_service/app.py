@@ -12,7 +12,9 @@ class Resource(BaseModel):
     id: Optional[int] = None
     name: str
     description: str
+    type: str
     quantity: int
+    loaned_quantity: int = 0
     status: str = "disponible"
 
 # Configuración de la base de datos
@@ -34,7 +36,9 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             description TEXT,
+            type TEXT NOT NULL,
             quantity INTEGER DEFAULT 1,
+            loaned_quantity INTEGER DEFAULT 0,
             status TEXT DEFAULT 'disponible'
         )
     ''')
@@ -46,15 +50,15 @@ def init_db():
     if count == 0:
         # Agregar recursos de ejemplo
         resources = [
-            ('Laptop Dell XPS', 'Laptop para desarrollo', 1, 'disponible'),
-            ('iPad Pro', 'Tablet para diseño', 1, 'disponible'),
-            ('Proyector EPSON', 'Proyector para presentaciones', 1, 'disponible'),
-            ('Cámara Sony', 'Cámara para fotografía', 1, 'disponible'),
-            ('Monitor LG 4K', 'Monitor para diseño gráfico', 1, 'disponible')
+            ('Laptop Dell XPS', 'Laptop para desarrollo de software', 'Computadora', 1, 0, 'disponible'),
+            ('iPad Pro', 'Tablet para diseño gráfico', 'Tablet', 1, 0, 'disponible'),
+            ('Proyector EPSON', 'Proyector para presentaciones', 'Equipo Audiovisual', 1, 0, 'disponible'),
+            ('Cámara Sony', 'Cámara para fotografía profesional', 'Equipo Fotográfico', 1, 0, 'disponible'),
+            ('Monitor LG 4K', 'Monitor para diseño gráfico', 'Monitor', 1, 0, 'disponible')
         ]
         
         c.executemany(
-            'INSERT INTO resources (name, description, quantity, status) VALUES (?, ?, ?, ?)',
+            'INSERT INTO resources (name, description, type, quantity, loaned_quantity, status) VALUES (?, ?, ?, ?, ?, ?)',
             resources
         )
     
@@ -69,11 +73,12 @@ def create_resource(resource: Resource):
     try:
         c = conn.cursor()
         c.execute(
-            "INSERT INTO resources (name, description, quantity, status) VALUES (?, ?, ?, ?)",
-            (resource.name, resource.description, resource.quantity, resource.status)
+            "INSERT INTO resources (name, description, type, quantity, loaned_quantity, status) VALUES (?, ?, ?, ?, ?, ?)",
+            (resource.name, resource.description, resource.type, resource.quantity, 0, resource.status)
         )
         conn.commit()
         resource.id = c.lastrowid
+        resource.loaned_quantity = 0
         return resource
     finally:
         conn.close()
@@ -91,8 +96,10 @@ def get_resources():
             "id": r[0],
             "name": r[1],
             "description": r[2],
-            "quantity": r[3],
-            "status": r[4]
+            "type": r[3],
+            "quantity": r[4],
+            "loaned_quantity": r[5],
+            "status": r[6]
         } for r in resources]
         
         return result
@@ -115,8 +122,10 @@ def get_resource(resource_id: int):
             id=row[0],
             name=row[1],
             description=row[2],
-            quantity=row[3],
-            status=row[4]
+            type=row[3],
+            quantity=row[4],
+            loaned_quantity=row[5],
+            status=row[6]
         )
     finally:
         conn.close()
@@ -127,8 +136,8 @@ def update_resource(resource_id: int, resource: Resource):
     try:
         c = conn.cursor()
         c.execute(
-            "UPDATE resources SET name = ?, description = ?, quantity = ?, status = ? WHERE id = ?",
-            (resource.name, resource.description, resource.quantity, resource.status, resource_id)
+            "UPDATE resources SET name = ?, description = ?, type = ?, quantity = ?, status = ? WHERE id = ?",
+            (resource.name, resource.description, resource.type, resource.quantity, resource.status, resource_id)
         )
         conn.commit()
         if c.rowcount == 0:
@@ -149,23 +158,71 @@ def update_resource_status(resource_id: int, status: dict):
         if not resource:
             raise HTTPException(status_code=404, detail="Recurso no encontrado")
             
-        # Actualizar el estado
+        # Validar que el estado sea válido
+        new_status = status.get("status")
+        if not new_status or new_status not in ["disponible", "prestado"]:
+            raise HTTPException(status_code=400, detail="Estado inválido")
+            
+        # Obtener la cantidad total y prestada
+        quantity = resource[4]
+        loaned_quantity = resource[5]
+        current_status = resource[6]
+        
+        if new_status == "prestado":
+            # Verificar si hay unidades disponibles para prestar
+            if loaned_quantity >= quantity:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No hay unidades disponibles para prestar"
+                )
+            # Incrementar la cantidad prestada
+            loaned_quantity += 1
+        else:  # status == "disponible"
+            # Decrementar la cantidad prestada
+            if loaned_quantity > 0:
+                loaned_quantity -= 1
+                
+        # Determinar el estado basado en la cantidad prestada
+        new_status = "prestado" if loaned_quantity > 0 else "disponible"
+            
+        # Actualizar el estado y la cantidad prestada
         c.execute(
-            "UPDATE resources SET status = ? WHERE id = ?",
-            (status.get("status"), resource_id)
+            "UPDATE resources SET status = ?, loaned_quantity = ? WHERE id = ?",
+            (new_status, loaned_quantity, resource_id)
         )
         conn.commit()
         
         # Verificar que la actualización fue exitosa
         c.execute("SELECT * FROM resources WHERE id = ?", (resource_id,))
         updated_resource = c.fetchone()
-        if updated_resource[4] != status.get("status"):
+        
+        # La actualización es exitosa si:
+        # 1. La cantidad prestada se actualizó correctamente
+        # 2. El estado refleja correctamente si hay o no unidades disponibles
+        updated_loaned = updated_resource[5]
+        updated_status = updated_resource[6]
+        
+        if updated_loaned != loaned_quantity:
+            conn.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail="Error al actualizar la cantidad prestada"
+            )
+            
+        expected_status = "prestado" if updated_loaned > 0 else "disponible"
+        if updated_status != expected_status:
+            conn.rollback()
             raise HTTPException(
                 status_code=500,
                 detail="Error al actualizar el estado del recurso"
             )
             
-        return {"message": "Estado actualizado exitosamente"}
+        return {
+            "message": "Estado actualizado exitosamente",
+            "status": new_status,
+            "loaned_quantity": loaned_quantity,
+            "available_quantity": quantity - loaned_quantity
+        }
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))

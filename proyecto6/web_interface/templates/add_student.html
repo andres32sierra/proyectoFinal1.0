@@ -37,6 +37,13 @@
                                 <label for="semester" class="form-label">Semestre</label>
                                 <input type="number" class="form-control" id="semester" name="semester" required min="1" max="12">
                             </div>
+                            <div class="col-md-6">
+                                <label for="phone" class="form-label">Teléfono</label>
+                                <input type="tel" class="form-control" id="phone" name="phone" 
+                                       pattern="^\+?[0-9]{1,4}[0-9]{10}$"
+                                       placeholder="+573112345678"
+                                       title="Número de teléfono en formato internacional (ej: +573112345678)">
+                            </div>
                         </div>
 
                         <div class="d-grid gap-2">

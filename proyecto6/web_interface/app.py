@@ -99,6 +99,7 @@ def add_resource():
             data = {
                 'name': request.form.get('name'),
                 'description': request.form.get('description'),
+                'type': request.form.get('type'),
                 'quantity': int(request.form.get('quantity', 1)),
                 'status': 'disponible'
             }
@@ -141,12 +142,14 @@ def students():
 def add_student():
     if request.method == 'POST':
         try:
+            phone = request.form.get('phone')
             data = {
                 'name': request.form.get('name'),
                 'email': request.form.get('email'),
                 'student_id': request.form.get('student_id'),
                 'career': request.form.get('career'),
-                'semester': int(request.form.get('semester', 1))
+                'semester': int(request.form.get('semester')),
+                'phone': phone if phone else None
             }
             
             # Validar datos requeridos
@@ -198,7 +201,11 @@ def loans():
         if response_resources.status_code != 200:
             flash('Error al obtener recursos', 'error')
             return render_template('loans.html', loans=[], resources={}, students={})
-        resources = {str(r['id']): r for r in response_resources.json()}
+        
+        # Crear diccionario de recursos usando id como clave
+        resources = {}
+        for resource in response_resources.json():
+            resources[str(resource['id'])] = resource
         
         # Obtener estudiantes
         response_students = requests.get(
@@ -212,7 +219,7 @@ def loans():
         # Crear diccionario de estudiantes usando student_id como clave
         students = {}
         for student in response_students.json():
-            students[str(student['student_id'])] = student
+            students[student['student_id']] = student
         
         # Debug: imprimir información
         print("Loans:", loans)
@@ -280,10 +287,13 @@ def create_loan():
                 flash('Por favor seleccione un recurso y un estudiante', 'error')
                 return redirect(url_for('create_loan'))
             
+            quantity = int(request.form.get('quantity', 1))
+            
             data = {
                 'resource_id': int(resource_id),
                 'student_id': student_id,
-                'status': 'prestado'
+                'status': 'prestado',
+                'quantity': quantity
             }
             
             # Primero verificamos que el recurso esté disponible
@@ -296,8 +306,9 @@ def create_loan():
                 return redirect(url_for('create_loan'))
                 
             resource = resource_response.json()
-            if resource['status'] != 'disponible':
-                flash('Error: El recurso no está disponible', 'error')
+            available_quantity = resource['quantity'] - resource['loaned_quantity']
+            if available_quantity < quantity:
+                flash(f'Error: Solo hay {available_quantity} unidades disponibles', 'error')
                 return redirect(url_for('create_loan'))
             
             # Verificamos que el estudiante exista
@@ -347,8 +358,8 @@ def create_loan():
         resources = resources_response.json()
         students = students_response.json()
         
-        # Filter only available resources
-        available_resources = [r for r in resources if r.get('status') == 'disponible']
+        # Filter resources that have available units
+        available_resources = [r for r in resources if r.get('quantity', 0) > r.get('loaned_quantity', 0)]
         
         return render_template('create_loan.html',
                              resources=available_resources,
@@ -368,36 +379,9 @@ def devolver_recurso(loan_id):
     try:
         headers = {'Authorization': f'Bearer {session["token"]}'}
 
-        # 1. Obtener el préstamo actual
-        response = requests.get(
-            f'{LOAN_SERVICE_URL}/loans/{loan_id}',
-            headers=headers
-        )
-        if response.status_code != 200:
-            flash('Error al obtener el préstamo', 'error')
-            return redirect(url_for('loans'))
-
-        loan = response.json()
-        resource_id = str(loan['resource_id'])  # Convertir a string
-
-        # 2. Actualizar el estado del recurso primero
+        # Usar el endpoint específico para devolver préstamos
         response = requests.put(
-            f'{RESOURCE_SERVICE_URL}/resources/{resource_id}/status',
-            json={"status": "disponible"},
-            headers=headers
-        )
-
-        if response.status_code != 200:
-            flash('Error al actualizar el estado del recurso', 'error')
-            return redirect(url_for('loans'))
-
-        # 3. Actualizar el estado del préstamo
-        loan['status'] = 'devuelto'
-        loan['return_date'] = datetime.now().isoformat()
-
-        response = requests.put(
-            f'{LOAN_SERVICE_URL}/loans/{loan_id}',
-            json=loan,
+            f'{LOAN_SERVICE_URL}/loans/{loan_id}/return',
             headers=headers
         )
 

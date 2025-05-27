@@ -21,6 +21,7 @@ class Loan(BaseModel):
     id: Optional[int] = None
     student_id: str
     resource_id: int
+    quantity: int = 1
     loan_date: Optional[str] = None
     due_date: Optional[str] = None
     return_date: Optional[str] = None
@@ -43,6 +44,7 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id TEXT NOT NULL,
             resource_id INTEGER NOT NULL,
+            quantity INTEGER DEFAULT 1,
             loan_date TEXT NOT NULL,
             due_date TEXT NOT NULL,
             return_date TEXT,
@@ -63,34 +65,63 @@ def verify_student(student_id: str):
     except requests.RequestException:
         raise HTTPException(status_code=503, detail="Servicio de estudiantes no disponible")
 
-def verify_resource(resource_id: int):
+def verify_resource(resource_id: int, quantity: int = 1):
     try:
         response = requests.get(f"{RESOURCE_SERVICE_URL}/resources/{resource_id}")
         if response.status_code == 404:
             raise HTTPException(status_code=404, detail="Recurso no encontrado")
         resource = response.json()
-        if resource["status"] != "disponible":
-            raise HTTPException(status_code=400, detail="Recurso no disponible")
+        
+        available_quantity = resource['quantity'] - resource['loaned_quantity']
+        if available_quantity < quantity:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"No hay suficientes unidades disponibles. Disponibles: {available_quantity}"
+            )
         return resource
     except requests.RequestException:
         raise HTTPException(status_code=503, detail="Servicio de recursos no disponible")
 
 def update_resource_status(resource_id: int, status: str):
     try:
-        # Primero obtenemos el recurso actual
-        response = requests.get(f"{RESOURCE_SERVICE_URL}/resources/{resource_id}")
-        if response.status_code == 200:
-            resource = response.json()
-            resource["status"] = status
-            # Actualizamos el estado
-            update_response = requests.put(
-                f"{RESOURCE_SERVICE_URL}/resources/{resource_id}",
-                json=resource
+        # Actualizamos el estado directamente
+        update_response = requests.put(
+            f"{RESOURCE_SERVICE_URL}/resources/{resource_id}/status",
+            json={"status": status}
+        )
+        
+        # Si hay un error, intentar obtener el detalle del error
+        if update_response.status_code != 200:
+            try:
+                error_response = update_response.json()
+                error_detail = error_response.get('detail', 'Error desconocido')
+            except Exception:
+                error_detail = f"Error {update_response.status_code}"
+            
+            raise HTTPException(
+                status_code=update_response.status_code,
+                detail=f"Error al actualizar el estado del recurso: {error_detail}"
             )
-            if update_response.status_code != 200:
-                raise HTTPException(status_code=500, detail="Error al actualizar el estado del recurso")
-    except requests.RequestException:
-        raise HTTPException(status_code=503, detail="Servicio de recursos no disponible")
+            
+        # Verificar la respuesta
+        try:
+            response_data = update_response.json()
+            if response_data.get('status') != status:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"El estado del recurso no se actualizó correctamente"
+                )
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al verificar el estado del recurso: {str(e)}"
+            )
+            
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Servicio de recursos no disponible: {str(e)}"
+        )
 
 def send_notification(student_id: str, message: str):
     try:
@@ -107,7 +138,7 @@ def send_notification(student_id: str, message: str):
 def create_loan(loan: Loan):
     # Verificar estudiante y recurso
     student = verify_student(loan.student_id)
-    resource = verify_resource(loan.resource_id)
+    resource = verify_resource(loan.resource_id, loan.quantity)
     
     # Crear el préstamo
     conn = get_db()
@@ -119,14 +150,15 @@ def create_loan(loan: Loan):
         due_date = (now + timedelta(days=7)).isoformat()
         
         c.execute(
-            "INSERT INTO loans (student_id, resource_id, loan_date, due_date, status) VALUES (?, ?, ?, ?, ?)",
-            (loan.student_id, loan.resource_id, loan.loan_date, due_date, loan.status)
+            "INSERT INTO loans (student_id, resource_id, quantity, loan_date, due_date, status) VALUES (?, ?, ?, ?, ?, ?)",
+            (loan.student_id, loan.resource_id, loan.quantity, loan.loan_date, due_date, loan.status)
         )
         conn.commit()
         loan.id = c.lastrowid
         
-        # Actualizar estado del recurso
-        update_resource_status(loan.resource_id, "prestado")
+        # Actualizar estado del recurso para cada unidad prestada
+        for _ in range(loan.quantity):
+            update_resource_status(loan.resource_id, "prestado")
         
         # Enviar notificación
         send_notification(
@@ -152,10 +184,11 @@ def get_loans():
             "id": l[0],
             "student_id": str(l[1]),  # Convertir a string
             "resource_id": str(l[2]),  # Convertir a string
-            "loan_date": l[3],
-            "due_date": l[4],
-            "return_date": l[5],
-            "status": l[6]
+            "quantity": l[3],
+            "loan_date": l[4],
+            "due_date": l[5],
+            "return_date": l[6],
+            "status": l[7]
         } for l in loans]
         
         return result
@@ -248,37 +281,65 @@ def return_loan(loan_id: int):
         c = conn.cursor()
         
         # Verificar que el préstamo existe y está activo
-        c.execute("SELECT * FROM loans WHERE id = ? AND status = 'prestado'", (loan_id,))
+        c.execute("SELECT * FROM loans WHERE id = ?", (loan_id,))
         row = c.fetchone()
         if row is None:
-            raise HTTPException(status_code=404, detail="Préstamo no encontrado o ya devuelto")
+            raise HTTPException(status_code=404, detail="Préstamo no encontrado")
+            
+        if row[6] == 'devuelto':  # row[6] es el status
+            raise HTTPException(status_code=400, detail="El préstamo ya fue devuelto")
         
-        # Actualizar el préstamo
-        return_date = datetime.now().isoformat()
-        c.execute(
-            "UPDATE loans SET status = 'devuelto', return_date = ? WHERE id = ?",
-            (return_date, loan_id)
-        )
-        conn.commit()
-        
-        # Actualizar estado del recurso
+        # Obtener los datos del préstamo
+        loan_id = row[0]
+        student_id = row[1]
         resource_id = row[2]
-        update_resource_status(resource_id, "disponible")
+        loan_date = row[3]
+        due_date = row[4]
         
-        # Enviar notificación
-        send_notification(
-            row[1],  # student_id
-            f"Se ha registrado la devolución del recurso correctamente."
-        )
-        
-        return Loan(
-            id=loan_id,
-            student_id=row[1],
-            resource_id=resource_id,
-            loan_date=row[3],
-            return_date=return_date,
-            status="devuelto"
-        )
+        try:
+            # Actualizar estado del recurso primero
+            update_resource_status(resource_id, "disponible")
+            
+            # Si se actualizó el recurso correctamente, actualizar el préstamo
+            return_date = datetime.now().isoformat()
+            c.execute(
+                "UPDATE loans SET status = 'devuelto', return_date = ? WHERE id = ?",
+                (return_date, loan_id)
+            )
+            conn.commit()
+            
+            # Enviar notificación
+            try:
+                send_notification(
+                    student_id,
+                    f"Se ha registrado la devolución del recurso correctamente."
+                )
+            except Exception as e:
+                # Si falla la notificación, solo lo registramos pero no revertimos la operación
+                print(f"Error al enviar notificación: {str(e)}")
+            
+            return Loan(
+                id=loan_id,
+                student_id=student_id,
+                resource_id=resource_id,
+                loan_date=loan_date,
+                due_date=due_date,
+                return_date=return_date,
+                status="devuelto"
+            )
+            
+        except HTTPException as he:
+            # Si es un error HTTP, lo propagamos
+            conn.rollback()
+            raise he
+        except Exception as e:
+            # Para cualquier otro error, hacemos rollback y lanzamos un error genérico
+            conn.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al procesar la devolución: {str(e)}"
+            )
+            
     finally:
         conn.close()
 

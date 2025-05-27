@@ -15,11 +15,17 @@
                             <select class="form-select" id="resource_id" name="resource_id" required>
                                 <option value="">Seleccione un recurso</option>
                                 {% for resource in resources %}
-                                <option value="{{ resource.id }}">
-                                    {{ resource.name }} - {{ resource.description }} ({{ resource.status }})
+                                <option value="{{ resource.id }}" data-available="{{ resource.quantity - resource.loaned_quantity }}">
+                                    {{ resource.name }} - {{ resource.description }} ({{ resource.quantity - resource.loaned_quantity }}/{{ resource.quantity }} disponibles)
                                 </option>
                                 {% endfor %}
                             </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="quantity" class="form-label">Cantidad a prestar</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" required min="1" value="1">
+                            <div class="form-text" id="available-text"></div>
                         </div>
 
                         <div class="mb-3">
@@ -44,4 +50,24 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('resource_id').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const availableQuantity = selectedOption.getAttribute('data-available');
+    const quantityInput = document.getElementById('quantity');
+    const availableText = document.getElementById('available-text');
+    
+    if (availableQuantity) {
+        quantityInput.max = availableQuantity;
+        availableText.textContent = `Cantidad máxima disponible: ${availableQuantity}`;
+        
+        if (parseInt(quantityInput.value) > parseInt(availableQuantity)) {
+            quantityInput.value = availableQuantity;
+        }
+    }
+});
+</script>
 {% endblock %}

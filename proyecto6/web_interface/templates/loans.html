@@ -16,9 +16,9 @@
                     <th>ID</th>
                     <th>Recurso</th>
                     <th>Estudiante</th>
-                    <th>Fecha Préstamo</th>
-                    <th>Fecha Vencimiento</th>
-                    <th>Fecha Devolución</th>
+                    <th>Cantidad</th>
+                    <th>Fecha de Préstamo</th>
+                    <th>Fecha de Vencimiento</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                 </tr>
@@ -27,11 +27,17 @@
                 {% for loan in loans %}
                 <tr>
                     <td>{{ loan.id }}</td>
-                    <td>{{ resources.get(loan.resource_id|string, {}).get('name', 'Recurso no encontrado') }}</td>
-                    <td>{{ students.get(loan.student_id|string, {}).get('name', 'Estudiante no encontrado') }}</td>
+                    <td>
+                        {% set resource = resources.get(loan.resource_id|string, {}) %}
+                        {{ resource.get('name', 'Recurso no encontrado') }}
+                    </td>
+                    <td>
+                        {% set student = students.get(loan.student_id, {}) %}
+                        {{ student.get('name', 'Estudiante no encontrado') }}
+                    </td>
+                    <td>{{ loan.quantity }}</td>
                     <td>{{ loan.loan_date.split('T')[0] }}</td>
                     <td>{{ loan.due_date.split('T')[0] }}</td>
-                    <td>{{ loan.return_date.split('T')[0] if loan.return_date else '-' }}</td>
                     <td>
                         <span class="badge {% if loan.status == 'prestado' %}bg-primary
                                          {% elif loan.status == 'devuelto' %}bg-success

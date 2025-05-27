@@ -14,6 +14,7 @@ class Student(BaseModel):
     student_id: str
     career: str
     semester: int
+    phone: Optional[str] = None
 
 # Configuración de la base de datos
 DB_PATH = "students.db"
@@ -36,7 +37,8 @@ def init_db():
             email TEXT NOT NULL,
             student_id TEXT NOT NULL UNIQUE,
             career TEXT NOT NULL,
-            semester INTEGER NOT NULL
+            semester INTEGER NOT NULL,
+            phone TEXT
         )
     ''')
     
@@ -47,15 +49,18 @@ def init_db():
     if count == 0:
         # Agregar estudiantes de ejemplo
         students = [
-            ('Juan Pérez', 'juan.perez@universidad.edu', 'A2023001', 'Ingeniería', 1),
-            ('María García', 'maria.garcia@universidad.edu', 'A2023002', 'Ingeniería', 2),
-            ('Carlos López', 'carlos.lopez@universidad.edu', 'A2023003', 'Ingeniería', 3),
-            ('Ana Martínez', 'ana.martinez@universidad.edu', 'A2023004', 'Ingeniería', 4),
-            ('Luis Rodríguez', 'luis.rodriguez@universidad.edu', 'A2023005', 'Ingeniería', 5)
+            ('Ana García', 'ana.garcia@universidad.edu', 'A2023001', 'Ingeniería de Software', 4, '555-1234'),
+            ('Carlos Rodríguez', 'carlos.rodriguez@universidad.edu', 'A2023002', 'Diseño Gráfico', 3, '555-5678'),
+            ('María López', 'maria.lopez@universidad.edu', 'A2023003', 'Ciencias de la Computación', 5, '555-9012'),
+            ('Juan Martínez', 'juan.martinez@universidad.edu', 'A2023004', 'Sistemas de Información', 4, '555-3456'),
+            ('Laura Torres', 'laura.torres@universidad.edu', 'A2023005', 'Ingeniería de Software', 3, '555-7890'),
+            ('Andrés Diego', 'aandresdiego@gmail.com', '123', 'ing sistemas', 6, '555-2468'),
+            ('Jennifer Velandia', 'jenifer.velandia@uniminuto.edu.co', '783129', 'ing sistemas', 8, '555-1357'),
+            ('Andrés Diego', 'aandresdiego@gmail.com', 'A835173', 'ing sistemas', 7, '555-9753')
         ]
         
         c.executemany(
-            'INSERT INTO students (name, email, student_id, career, semester) VALUES (?, ?, ?, ?, ?)',
+            'INSERT INTO students (name, email, student_id, career, semester, phone) VALUES (?, ?, ?, ?, ?, ?)',
             students
         )
         
@@ -70,8 +75,8 @@ def create_student(student: Student):
     try:
         c = conn.cursor()
         c.execute(
-            "INSERT INTO students (name, email, student_id, career, semester) VALUES (?, ?, ?, ?, ?)",
-            (student.name, student.email, student.student_id, student.career, student.semester)
+            "INSERT INTO students (name, email, student_id, career, semester, phone) VALUES (?, ?, ?, ?, ?, ?)",
+            (student.name, student.email, student.student_id, student.career, student.semester, student.phone)
         )
         conn.commit()
         student.id = c.lastrowid
@@ -86,7 +91,7 @@ def get_students():
     conn = get_db()
     try:
         c = conn.cursor()
-        c.execute("SELECT id, name, email, student_id, career, semester FROM students ORDER BY id")
+        c.execute("SELECT id, name, email, student_id, career, semester, phone FROM students ORDER BY id")
         students = c.fetchall()
         
         # Convertir los resultados a una lista de diccionarios
@@ -96,7 +101,8 @@ def get_students():
             "email": s[2],
             "student_id": s[3],
             "career": s[4],
-            "semester": s[5]
+            "semester": s[5],
+            "phone": s[6]
         } for s in students]
         
         return result
@@ -120,7 +126,8 @@ def get_student(student_id: int):
             email=row[2],
             student_id=row[3],
             career=row[4],
-            semester=row[5]
+            semester=row[5],
+            phone=row[6]
         )
     finally:
         conn.close()
@@ -140,7 +147,8 @@ def get_student_by_code(student_code: str):
             email=row[2],
             student_id=row[3],
             career=row[4],
-            semester=row[5]
+            semester=row[5],
+            phone=row[6]
         )
     finally:
         conn.close()
@@ -152,10 +160,10 @@ def update_student(student_id: int, student: Student):
         c = conn.cursor()
         c.execute(
             """UPDATE students 
-               SET name = ?, email = ?, student_id = ?, career = ?, semester = ? 
+               SET name = ?, email = ?, student_id = ?, career = ?, semester = ?, phone = ? 
                WHERE id = ?""",
             (student.name, student.email, student.student_id, student.career, 
-             student.semester, student_id)
+             student.semester, student.phone, student_id)
         )
         conn.commit()
         if c.rowcount == 0:

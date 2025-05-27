@@ -17,6 +17,7 @@
                     <th>Nombre</th>
                     <th>Tipo</th>
                     <th>Descripción</th>
+                    <th>Cantidad</th>
                     <th>Estado</th>
                     <th>Última Actualización</th>
                 </tr>
@@ -29,7 +30,13 @@
                     <td>{{ resource.type }}</td>
                     <td>{{ resource.description }}</td>
                     <td>
-                        <span class="badge {% if resource.status == 'available' %}bg-success{% else %}bg-warning{% endif %}">
+                        {{ resource.quantity - resource.loaned_quantity }} / {{ resource.quantity }}
+                        {% if resource.quantity == resource.loaned_quantity %}
+                        <span class="badge bg-warning">Sin unidades disponibles</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge {% if resource.status == 'disponible' %}bg-success{% else %}bg-warning{% endif %}">
                             {{ resource.status }}
                         </span>
                     </td>
