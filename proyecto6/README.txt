@@ -10,7 +10,10 @@ El sistema utiliza FastAPI como framework principal para los microservicios, apr
 - Validación automática con Pydantic
 - Documentación automática con Swagger/OpenAPI
 - Seguridad con JWT y OAuth2
+<<<<<<< HEAD
 - Sistema de préstamos con control de cantidades múltiples
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 
 ### Microservicios
 
@@ -22,8 +25,12 @@ El sistema utiliza FastAPI como framework principal para los microservicios, apr
 2. **Resource Service** (Puerto 8001)
    - Gestión de recursos prestables
    - CRUD completo de recursos
+<<<<<<< HEAD
    - Control de cantidades y disponibilidad
    - Estado dinámico basado en unidades prestadas
+=======
+   - Estado de disponibilidad
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 
 3. **Student Service** (Puerto 8002)
    - Gestión de estudiantes
@@ -33,8 +40,11 @@ El sistema utiliza FastAPI como framework principal para los microservicios, apr
    - Gestión de préstamos
    - Seguimiento de estados
    - Validaciones de disponibilidad
+<<<<<<< HEAD
    - Soporte para préstamos de múltiples unidades
    - Verificación de cantidades disponibles
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 
 5. **Notification Service** (Puerto 8004)
    - Sistema de notificaciones
@@ -105,6 +115,24 @@ cd loan_service && uvicorn main:app --reload --port 8003
 
 # Notification Service (Puerto 8004)
 cd notification_service && uvicorn main:app --reload --port 8004
+<<<<<<< HEAD
+=======
+
+# Web Interface (Puerto 5000)
+cd web_interface && flask run
+```
+
+## Acceso al Sistema
+
+### Interfaz Web
+- URL: http://localhost:5000
+- Credenciales por defecto:
+  - Usuario: `admin`
+  - Contraseña: `admin123`
+
+### Documentación API (Swagger UI)
+Cada microservicio incluye documentación automática generada por FastAPI:
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 
 # Web Interface (Puerto 5000)
 cd web_interface && flask run
@@ -131,6 +159,7 @@ Servicios individuales:
 - Loan Service: http://localhost:8003/docs
 - Notification Service: http://localhost:8004/docs
 
+<<<<<<< HEAD
 ### API Gateway Endpoints
 
 El API Gateway expone los siguientes endpoints consolidados:
@@ -168,11 +197,14 @@ Todos los endpoints del API Gateway:
 - Proporcionan caché automático
 - Registran métricas de uso
 
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 ### Documentación API (ReDoc)
 Versión alternativa de la documentación:
 - Agregar `/redoc` al final de cada URL de servicio
 - Ejemplo: http://localhost:8000/redoc
 
+<<<<<<< HEAD
 ## Funcionalidades del Sistema
 
 ### Gestión de Recursos
@@ -200,6 +232,8 @@ Versión alternativa de la documentación:
 - Reportes de préstamos y recursos
 - Configuración del sistema
 
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 ## Características Técnicas
 
 ### Seguridad
@@ -218,6 +252,7 @@ Versión alternativa de la documentación:
 - Validación de esquemas
 - Manejo de errores HTTP
 - Rate limiting
+<<<<<<< HEAD
 - Control de cantidades en préstamos
 - Estado dinámico de recursos
 
@@ -228,11 +263,14 @@ Versión alternativa de la documentación:
 - Monitoreo de servicios
 - Autenticación centralizada
 - Logging de solicitudes
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
 
 ### Notificaciones
 - Integración con SendGrid
 - Plantillas de email
 - Cola de notificaciones
+<<<<<<< HEAD
 
 ## Diagrama de Arquitectura
 
@@ -525,3 +563,5 @@ Response:
   }
 ]
 ```
+=======
+>>>>>>> cb082c615a0f8601fa386a44d9717297862e4b09
