@@ -28,6 +28,10 @@ timeout /t 3 /nobreak
 
 :: Iniciar Web Interface (puerto 5000)
 start "Web Interface" cmd /k "cd web_interface && python app.py"
+timeout /t 3 /nobreak
+
+:: Iniciar API Gateway (puerto 8080)
+start "API Gateway" cmd /k "cd api_gateway && uvicorn main:app --reload --port 8080"
 
 echo.
 echo Servicios iniciados:
@@ -36,6 +40,7 @@ echo - Resource Service: http://localhost:8001
 echo - Student Service: http://localhost:8002
 echo - Loan Service: http://localhost:8003
 echo - Web Interface: http://localhost:5000
+echo - API Gateway: http://localhost:8080
 echo.
 echo Presiona cualquier tecla para abrir la interfaz web...
 pause > nul
