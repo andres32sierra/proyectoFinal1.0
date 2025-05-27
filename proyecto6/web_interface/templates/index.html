@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1 class="mb-4">Bienvenido a la Universidad Central de Préstamos</h1>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-box text-primary"></i> Recursos
+                    </h5>
+                    <p class="card-text">Gestiona los recursos universitarios disponibles para préstamo.</p>
+                    <a href="{{ url_for('resources') }}" class="btn btn-primary">Ver Recursos</a>
+                    <a href="{{ url_for('add_resource') }}" class="btn btn-outline-primary">Agregar Nuevo</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user-graduate text-success"></i> Estudiantes
+                    </h5>
+                    <p class="card-text">Gestiona los registros de estudiantes y visualiza su historial de préstamos.</p>
+                    <a href="{{ url_for('students') }}" class="btn btn-success">Ver Estudiantes</a>
+                    <a href="{{ url_for('add_student') }}" class="btn btn-outline-success">Agregar Nuevo</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-handshake text-warning"></i> Préstamos
+                    </h5>
+                    <p class="card-text">Crea y gestiona préstamos de recursos a estudiantes.</p>
+                    <a href="{{ url_for('loans') }}" class="btn btn-warning">Ver Préstamos</a>
+                    <a href="{{ url_for('create_loan') }}" class="btn btn-outline-warning">Crear Nuevo</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
